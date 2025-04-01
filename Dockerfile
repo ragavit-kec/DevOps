@@ -1,23 +1,24 @@
 # Use the official Nginx image
 FROM nginx:alpine
 
-# Install git to clone the repository
-RUN apk update && apk add --no-cache git
-
-# Set working directory
+# Set working directory inside the container
 WORKDIR /usr/share/nginx/html
 
-# Remove default Nginx files
+# Remove default Nginx content
 RUN rm -rf ./*
 
-# Clone the GitHub repository
-RUN git clone https://github.com/ragavit-kec/DevOps.git /tmp/devops
+# Copy the HTML, CSS, and JS files into the Nginx HTML directory
+COPY ./index.html ./
+COPY ./about.html ./
+COPY ./bakers.html ./
+COPY ./style.css ./
+COPY ./js/app.js ./js/
 
-# Copy the contents of the Bakery folder into the Nginx HTML directory
-RUN cp -r /tmp/devops/Bakery/* /usr/share/nginx/html/
+# Copy images directory to the Nginx HTML folder (if you have images)
+COPY ./images /usr/share/nginx/html/images/
 
-# Expose port 80 (inside container)
+# Expose port 80 for the container
 EXPOSE 80
 
-# Start Nginx
+# Start Nginx server
 CMD ["nginx", "-g", "daemon off;"]
