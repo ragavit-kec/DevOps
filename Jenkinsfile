@@ -9,19 +9,16 @@ pipeline {
     }
 
     stages {
-        stages {
         stage('Clone Repository') {
             steps {
                 git branch: 'main', url: 'https://github.com/ragavit-kec/DevOps.git'
             }
         }
-    }
         
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh 'eval $(minikube docker-env)' // Use Minikube's Docker daemon
-                    sh "docker build -t ${IMAGE_NAME} ."
+                    sh 'eval $(minikube docker-env) && docker build -t ${IMAGE_NAME} .' // Use Minikube's Docker daemon for build
                 }
             }
         }
@@ -40,8 +37,8 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 script {
-                    sh 'kubectl get pods'
-                    sh 'kubectl get services'
+                    sh 'kubectl get pods -o wide'
+                    sh 'kubectl get services -o wide'
                 }
             }
         }
@@ -49,7 +46,7 @@ pipeline {
         stage('Cleanup') {
             steps {
                 script {
-                    sh 'docker system prune -f'
+                    sh 'docker system prune -f --volumes'
                 }
             }
         }
