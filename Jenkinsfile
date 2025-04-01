@@ -1,6 +1,6 @@
 pipeline {
     agent any
-    
+
     environment {
         IMAGE_NAME = "my-app"
         CONTAINER_NAME = "my-app-container"
@@ -14,15 +14,19 @@ pipeline {
                 git branch: 'main', url: 'https://github.com/ragavit-kec/DevOps.git'
             }
         }
-        
+
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh 'eval $(minikube docker-env) && docker build -t ${IMAGE_NAME} .' // Use Minikube's Docker daemon for build
+                    sh '''
+                    eval $(minikube docker-env)  # Ensure Minikube's Docker is used
+                    sudo chmod 666 /var/run/docker.sock  # Grant permissions to Jenkins
+                    docker build -t ${IMAGE_NAME} .
+                    '''
                 }
             }
         }
-        
+
         stage('Deploy to Minikube') {
             steps {
                 script {
@@ -37,16 +41,16 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 script {
-                    sh 'kubectl get pods -o wide'
-                    sh 'kubectl get services -o wide'
+                    sh 'kubectl get pods'
+                    sh 'kubectl get services'
                 }
             }
         }
-        
+
         stage('Cleanup') {
             steps {
                 script {
-                    sh 'docker system prune -f --volumes'
+                    sh 'docker system prune -f'
                 }
             }
         }
