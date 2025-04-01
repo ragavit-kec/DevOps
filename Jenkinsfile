@@ -16,21 +16,18 @@ pipeline {
         }
 
         stage('Build Docker Image') {
-            steps {
-                script {
-                    try {
-                        // Ensure Minikube's Docker environment is being used
-                        sh '''
-                        eval $(minikube docker-env)  # Set Minikube's Docker environment
-                        sudo chmod 666 /var/run/docker.sock  # Grant permissions to Jenkins to access Docker
-                        docker build -t ${IMAGE_NAME} .  # Build the Docker image
-                        '''
-                    } catch (Exception e) {
-                        error "Docker build failed: ${e.message}"
-                    }
-                }
-            }
+    steps {
+        script {
+            sh '''
+            eval $(minikube docker-env)  # Set Minikube's Docker environment
+            export DOCKER_TLS_VERIFY=0  # Disable TLS verification
+            sudo chmod 666 /var/run/docker.sock  # Grant permissions to Jenkins to access Docker
+            docker build -t ${IMAGE_NAME} .  # Build the Docker image
+            '''
         }
+    }
+}
+
 
         stage('Deploy to Minikube') {
             steps {
