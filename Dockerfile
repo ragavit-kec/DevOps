@@ -8,14 +8,14 @@ WORKDIR /usr/share/nginx/html
 RUN rm -rf ./*
 
 # Copy the HTML, CSS, and JS files into the Nginx HTML directory
-COPY ./index.html ./
-COPY ./about.html ./
-COPY ./bakers.html ./
-COPY ./style.css ./
-COPY ./js/app.js ./js/
+COPY ./bakery/index.html ./
+COPY ./bakery/about.html ./
+COPY ./bakery/bakers.html ./
+COPY ./bakery/style.css ./
+COPY ./bakery/js/app.js ./js/
 
 # Copy images directory to the Nginx HTML folder (if you have images)
-COPY ./images /usr/share/nginx/html/images/
+COPY ./bakery/images /usr/share/nginx/html/images/
 
 # Expose port 80 for the container
 EXPOSE 80
