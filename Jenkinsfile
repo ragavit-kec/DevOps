@@ -18,11 +18,16 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh '''
-                    eval $(minikube docker-env)  # Ensure Minikube's Docker is used
-                    sudo chmod 666 /var/run/docker.sock  # Grant permissions to Jenkins
-                    docker build -t ${IMAGE_NAME} .
-                    '''
+                    try {
+                        // Ensure Minikube's Docker environment is being used
+                        sh '''
+                        eval $(minikube docker-env)  # Set Minikube's Docker environment
+                        sudo chmod 666 /var/run/docker.sock  # Grant permissions to Jenkins to access Docker
+                        docker build -t ${IMAGE_NAME} .  # Build the Docker image
+                        '''
+                    } catch (Exception e) {
+                        error "Docker build failed: ${e.message}"
+                    }
                 }
             }
         }
@@ -30,10 +35,18 @@ pipeline {
         stage('Deploy to Minikube') {
             steps {
                 script {
-                    sh '''
-                    kubectl apply -f k8s-deployment.yaml
-                    kubectl apply -f k8s-service.yaml
-                    '''
+                    try {
+                        // Ensure kubectl is working before applying the deployment
+                        sh 'kubectl version --client=true'  // Check kubectl version to verify it's set up correctly
+
+                        // Deploy Kubernetes manifests
+                        sh '''
+                        kubectl apply -f k8s-deployment.yaml  # Apply the deployment YAML
+                        kubectl apply -f k8s-service.yaml  # Apply the service YAML
+                        '''
+                    } catch (Exception e) {
+                        error "Kubernetes deployment failed: ${e.message}"
+                    }
                 }
             }
         }
@@ -41,8 +54,13 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 script {
-                    sh 'kubectl get pods'
-                    sh 'kubectl get services'
+                    try {
+                        // Verify the status of the deployment
+                        sh 'kubectl get pods'  // Get the list of pods to verify the deployment
+                        sh 'kubectl get services'  // Get the list of services to verify the deployment
+                    } catch (Exception e) {
+                        error "Verification of deployment failed: ${e.message}"
+                    }
                 }
             }
         }
@@ -50,7 +68,12 @@ pipeline {
         stage('Cleanup') {
             steps {
                 script {
-                    sh 'docker system prune -f'
+                    try {
+                        // Clean up unused Docker resources
+                        sh 'docker system prune -f'
+                    } catch (Exception e) {
+                        error "Cleanup failed: ${e.message}"
+                    }
                 }
             }
         }
