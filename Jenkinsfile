@@ -9,11 +9,13 @@ pipeline {
     }
 
     stages {
+        stages {
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/ragavit-kec/DevOps.git'
+                git branch: 'main', url: 'https://github.com/ragavit-kec/DevOps.git'
             }
         }
+    }
         
         stage('Build Docker Image') {
             steps {
