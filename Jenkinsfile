@@ -15,44 +15,19 @@ pipeline {
             }
         }
 
-        stage('Reinstall Minikube') {
+        stage('Setup Docker Environment') {
             steps {
                 script {
                     try {
                         sh '''
-                        # Stop and delete Minikube if it exists
-                        minikube stop || true
-                        minikube delete || true
-
-                        # Reinstall Minikube (Ubuntu-based system)
-                        sudo rm -rf /usr/local/bin/minikube
-                        curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-                        sudo install minikube-linux-amd64 /usr/local/bin/minikube
-                        rm minikube-linux-amd64
-                        '''
-                    } catch (Exception e) {
-                        error "Minikube reinstallation failed: ${e.message}"
-                    }
-                }
-            }
-        }
-
-        stage('Setup Minikube & Docker') {
-            steps {
-                script {
-                    try {
-                        sh '''
-                        # Start Minikube
-                        minikube start --driver=docker
-
-                        # Ensure Minikube is using the correct Docker environment
+                        # Ensure Minikube Docker environment is used
                         eval $(minikube docker-env)
 
                         # Grant Jenkins access to Docker
                         sudo chmod 666 /var/run/docker.sock
                         '''
                     } catch (Exception e) {
-                        error "Minikube setup failed: ${e.message}"
+                        error "Docker environment setup failed: ${e.message}"
                     }
                 }
             }
