@@ -15,18 +15,40 @@ pipeline {
             }
         }
 
+        stage('Reinstall Minikube') {
+            steps {
+                script {
+                    try {
+                        sh '''
+                        # Stop and delete Minikube if it exists
+                        minikube stop || true
+                        minikube delete || true
+
+                        # Reinstall Minikube (Ubuntu-based system)
+                        sudo rm -rf /usr/local/bin/minikube
+                        curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+                        sudo install minikube-linux-amd64 /usr/local/bin/minikube
+                        rm minikube-linux-amd64
+                        '''
+                    } catch (Exception e) {
+                        error "Minikube reinstallation failed: ${e.message}"
+                    }
+                }
+            }
+        }
+
         stage('Setup Minikube & Docker') {
             steps {
                 script {
                     try {
                         sh '''
-                        # Ensure Minikube is running
-                        minikube start
+                        # Start Minikube
+                        minikube start --driver=docker
 
-                        # Set up Docker to use Minikube’s environment
+                        # Ensure Minikube is using the correct Docker environment
                         eval $(minikube docker-env)
 
-                        # Grant permissions to Jenkins for Docker
+                        # Grant Jenkins access to Docker
                         sudo chmod 666 /var/run/docker.sock
                         '''
                     } catch (Exception e) {
@@ -54,13 +76,13 @@ pipeline {
             steps {
                 script {
                     try {
-                        // Ensure Minikube context is set
+                        // Set Minikube as the Kubernetes context
                         sh 'kubectl config use-context minikube'
 
-                        // Apply Kubernetes manifests with TLS verification disabled
+                        // Apply Kubernetes manifests
                         sh '''
-                        kubectl apply --insecure-skip-tls-verify -f k8s-deployment.yaml
-                        kubectl apply --insecure-skip-tls-verify -f k8s-service.yaml
+                        kubectl apply -f k8s-deployment.yaml
+                        kubectl apply -f k8s-service.yaml
                         '''
                     } catch (Exception e) {
                         error "Kubernetes deployment failed: ${e.message}"
@@ -74,8 +96,8 @@ pipeline {
                 script {
                     try {
                         sh '''
-                        kubectl get pods --insecure-skip-tls-verify
-                        kubectl get services --insecure-skip-tls-verify
+                        kubectl get pods
+                        kubectl get services
                         '''
                     } catch (Exception e) {
                         error "Verification of deployment failed: ${e.message}"
