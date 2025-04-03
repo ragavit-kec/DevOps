@@ -15,16 +15,33 @@ pipeline {
             }
         }
 
+        stage('Setup Minikube & Docker') {
+            steps {
+                script {
+                    try {
+                        sh '''
+                        # Ensure Minikube is running
+                        minikube start
+
+                        # Set up Docker to use Minikube’s environment
+                        eval $(minikube docker-env)
+
+                        # Grant permissions to Jenkins for Docker
+                        sudo chmod 666 /var/run/docker.sock
+                        '''
+                    } catch (Exception e) {
+                        error "Minikube setup failed: ${e.message}"
+                    }
+                }
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
                     try {
-                        // Set Minikube's Docker environment and disable TLS verification
                         sh '''
-                        eval $(minikube docker-env)  # Set Minikube's Docker environment
-                        export DOCKER_TLS_VERIFY=0  # Disable TLS verification
-                        sudo chmod 666 /var/run/docker.sock  # Grant permissions to Jenkins to access Docker
-                        docker build -t ${IMAGE_NAME} .  # Build the Docker image
+                        docker build -t ${IMAGE_NAME} .
                         '''
                     } catch (Exception e) {
                         error "Docker image build failed: ${e.message}"
@@ -37,13 +54,13 @@ pipeline {
             steps {
                 script {
                     try {
-                        // Ensure kubectl is working before applying the deployment
-                        sh 'kubectl version --client=true'  // Check kubectl version to verify it's set up correctly
+                        // Ensure Minikube context is set
+                        sh 'kubectl config use-context minikube'
 
-                        // Deploy Kubernetes manifests
+                        // Apply Kubernetes manifests with TLS verification disabled
                         sh '''
-                        kubectl apply -f k8s-deployment.yaml  # Apply the deployment YAML
-                        kubectl apply -f k8s-service.yaml  # Apply the service YAML
+                        kubectl apply --insecure-skip-tls-verify -f k8s-deployment.yaml
+                        kubectl apply --insecure-skip-tls-verify -f k8s-service.yaml
                         '''
                     } catch (Exception e) {
                         error "Kubernetes deployment failed: ${e.message}"
@@ -56,9 +73,10 @@ pipeline {
             steps {
                 script {
                     try {
-                        // Verify the status of the deployment
-                        sh 'kubectl get pods'  // Get the list of pods to verify the deployment
-                        sh 'kubectl get services'  // Get the list of services to verify the deployment
+                        sh '''
+                        kubectl get pods --insecure-skip-tls-verify
+                        kubectl get services --insecure-skip-tls-verify
+                        '''
                     } catch (Exception e) {
                         error "Verification of deployment failed: ${e.message}"
                     }
@@ -70,7 +88,6 @@ pipeline {
             steps {
                 script {
                     try {
-                        // Clean up unused Docker resources
                         sh 'docker system prune -f'
                     } catch (Exception e) {
                         error "Cleanup failed: ${e.message}"
