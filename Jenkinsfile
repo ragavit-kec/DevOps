@@ -48,23 +48,30 @@ pipeline {
         }
 
         stage('Deploy to Minikube') {
-            steps {
-                script {
-                    try {
-                        // Set Minikube as the Kubernetes context
-                        sh 'kubectl config use-context minikube'
+    steps {
+        script {
+            try {
+                // Set Minikube as the Kubernetes context
+                sh 'kubectl config use-context minikube'
 
-                        // Apply Kubernetes manifests
-                        sh '''
-                        kubectl apply -f k8s-deployment.yaml
-                        kubectl apply -f k8s-service.yaml
-                        '''
-                    } catch (Exception e) {
-                        error "Kubernetes deployment failed: ${e.message}"
-                    }
-                }
+                // Validate YAML files before applying
+                sh '''
+                kubectl apply --dry-run=client -f k8s-deployment.yaml
+                kubectl apply --dry-run=client -f k8s-service.yaml
+                '''
+
+                // Apply Kubernetes manifests only if validation succeeds
+                sh '''
+                kubectl apply -f k8s-deployment.yaml
+                kubectl apply -f k8s-service.yaml
+                '''
+            } catch (Exception e) {
+                error "Kubernetes deployment failed: ${e.message}"
             }
         }
+    }
+}
+
 
         stage('Verify Deployment') {
             steps {
